@@ -7,10 +7,11 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input"; // Added Input
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { FileText, Briefcase, Activity, AlertCircle, CheckCircle, ThumbsUp } from "lucide-react";
+import { FileText, Briefcase, Activity, AlertCircle, CheckCircle, ThumbsUp, UploadCloud, FileUp } from "lucide-react"; // Added UploadCloud, FileUp
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -25,8 +26,9 @@ export default function Home() {
   const initialState: AtsScoreActionState | null = null;
   const [state, formAction] = useActionState(getAtsScoreAction, initialState);
   const [showResults, setShowResults] = useState(false);
-  const [resumeText, setResumeText] = useState('');
+  // Removed resumeText state
   const [jobDescriptionText, setJobDescriptionText] = useState('');
+  const [resumeFileName, setResumeFileName] = useState<string | null>(null); // State for resume file name
 
   useEffect(() => {
     if (state?.success) {
@@ -36,12 +38,22 @@ export default function Home() {
     }
   }, [state]);
 
+  const handleResumeFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    setResumeFileName(file ? file.name : null);
+  };
+
   const handleReset = () => {
     setShowResults(false);
-    setResumeText('');
     setJobDescriptionText('');
-    // Consider resetting the formAction state if necessary, though useActionState might handle this.
-    // For a full reset, consider managing state outside useActionState or re-keying the form.
+    setResumeFileName(null);
+    // Reset file input visually if needed (might require direct DOM manipulation or re-keying the form)
+    const fileInput = document.getElementById('resumeFile') as HTMLInputElement | null;
+    if (fileInput) {
+      fileInput.value = '';
+    }
+    // Consider resetting the formAction state if necessary. Re-keying the form might be cleanest:
+    // Example: `<form key={resetKey} action={formAction}>` and increment `resetKey` in `handleReset`.
   };
 
   return (
@@ -57,9 +69,9 @@ export default function Home() {
             <CardTitle className="flex items-center gap-2 text-2xl">
               <Briefcase className="text-primary" /> Job & Resume Input
             </CardTitle>
-            <CardDescription>Paste the job description and resume text below.</CardDescription>
+            <CardDescription>Paste the job description and upload the resume file.</CardDescription>
           </CardHeader>
-          <form action={formAction}>
+          <form action={formAction} encType="multipart/form-data"> {/* Added encType */}
             <CardContent className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="jobDescriptionText" className="text-lg font-semibold flex items-center gap-2">
@@ -80,21 +92,36 @@ export default function Home() {
                  )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="resumeText" className="text-lg font-semibold flex items-center gap-2">
-                   <FileText className="text-primary h-5 w-5" /> Resume Text
+                <Label htmlFor="resumeFile" className="text-lg font-semibold flex items-center gap-2">
+                   <FileUp className="text-primary h-5 w-5" /> Upload Resume
                 </Label>
-                <Textarea
-                  id="resumeText"
-                  name="resumeText"
-                  placeholder="Paste the full resume text here..."
-                  className="min-h-[250px] border-input focus:ring-primary"
-                  value={resumeText}
-                  onChange={(e) => setResumeText(e.target.value)}
-                   aria-invalid={!!state?.fieldErrors?.resumeText}
-                   aria-describedby="resume-error"
-                />
-                 {state?.fieldErrors?.resumeText && (
-                    <p id="resume-error" className="text-sm text-destructive">{state.fieldErrors.resumeText.join(', ')}</p>
+                <div className="flex items-center justify-center w-full">
+                    <label htmlFor="resumeFile" className="flex flex-col items-center justify-center w-full h-40 border-2 border-input border-dashed rounded-lg cursor-pointer bg-secondary hover:bg-muted transition-colors">
+                        <div className="flex flex-col items-center justify-center pt-5 pb-6 text-center px-4">
+                            <UploadCloud className="w-10 h-10 mb-3 text-primary" />
+                            {resumeFileName ? (
+                                <p className="mb-2 text-sm text-foreground font-semibold truncate">{resumeFileName}</p>
+                            ) : (
+                                <>
+                                    <p className="mb-2 text-sm text-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
+                                    <p className="text-xs text-muted-foreground">PDF, DOCX, or TXT (MAX. 5MB)</p>
+                                </>
+                            )}
+                        </div>
+                        <Input
+                          id="resumeFile"
+                          name="resumeFile"
+                          type="file"
+                          className="hidden"
+                          accept=".pdf,.docx,.txt"
+                          onChange={handleResumeFileChange}
+                          aria-invalid={!!state?.fieldErrors?.resumeFile}
+                          aria-describedby="resume-file-error"
+                        />
+                    </label>
+                </div>
+                 {state?.fieldErrors?.resumeFile && (
+                    <p id="resume-file-error" className="text-sm text-destructive">{state.fieldErrors.resumeFile.join(', ')}</p>
                  )}
               </div>
             </CardContent>
