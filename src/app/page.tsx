@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useFormState, useFormStatus } from 'react-dom';
+import React, { useState, useEffect, useActionState } from 'react';
+import { useFormStatus } from 'react-dom';
 import { getAtsScoreAction, type AtsScoreActionState } from '@/app/actions';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { FileText, Briefcase, Activity, AlertCircle, CheckCircle, ThumbsUp, ThumbsDown } from "lucide-react";
+import { FileText, Briefcase, Activity, AlertCircle, CheckCircle, ThumbsUp } from "lucide-react";
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -23,7 +23,7 @@ function SubmitButton() {
 
 export default function Home() {
   const initialState: AtsScoreActionState | null = null;
-  const [state, formAction] = useFormState(getAtsScoreAction, initialState);
+  const [state, formAction] = useActionState(getAtsScoreAction, initialState);
   const [showResults, setShowResults] = useState(false);
   const [resumeText, setResumeText] = useState('');
   const [jobDescriptionText, setJobDescriptionText] = useState('');
@@ -40,8 +40,8 @@ export default function Home() {
     setShowResults(false);
     setResumeText('');
     setJobDescriptionText('');
-    // Reset form state (this might need more specific handling depending on how useFormState interacts with manual resets)
-    // Consider using a key on the form or a dedicated reset mechanism if needed.
+    // Consider resetting the formAction state if necessary, though useActionState might handle this.
+    // For a full reset, consider managing state outside useActionState or re-keying the form.
   };
 
   return (
