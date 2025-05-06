@@ -1,13 +1,64 @@
+
 'use server';
 
 import { z } from 'zod';
 import { generateAtsScore, type AtsScoreInput, type AtsScoreOutput } from '@/ai/flows/ats-score-generation';
-// Removed static import: import pdf from 'pdf-parse';
+import { generateJobDescription, type JobDescriptionGenerationInput } from '@/ai/flows/job-description-generation'; // Added import
 import mammoth from 'mammoth';
 
-// Define allowed file types and size limit
+// Define allowed file types and size limit for resume
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ACCEPTED_FILE_TYPES = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain'];
+
+// --- Job Description Generation Action ---
+
+const JobDescriptionActionSchema = z.object({
+  jobRole: z.string().min(3, 'Job role must be selected.'),
+});
+
+export type JobDescriptionActionState = {
+  success: boolean;
+  description?: string;
+  error?: string;
+};
+
+export async function generateJobDescriptionAction(
+  prevState: JobDescriptionActionState | null,
+  formData: FormData
+): Promise<JobDescriptionActionState> {
+  const rawFormData = {
+    jobRole: formData.get('jobRole'),
+  };
+
+  const validatedFields = JobDescriptionActionSchema.safeParse(rawFormData);
+
+  if (!validatedFields.success) {
+    return {
+      success: false,
+      error: 'Invalid job role provided.',
+    };
+  }
+
+  const { jobRole } = validatedFields.data;
+
+  try {
+    const inputData: JobDescriptionGenerationInput = { jobRole };
+    console.log('Calling generateJobDescription with input:', inputData);
+    const result = await generateJobDescription(inputData);
+    console.log('Received result from generateJobDescription:', result);
+    return { success: true, description: result.jobDescription };
+  } catch (error) {
+    console.error('Error in generateJobDescriptionAction:', error);
+    let errorMessage = 'An unexpected error occurred while generating the job description.';
+    if (error instanceof Error) {
+      errorMessage = error.message;
+    }
+    return { success: false, error: errorMessage };
+  }
+}
+
+
+// --- ATS Score Generation Action ---
 
 const AtsScoreActionSchema = z.object({
   resumeFile: z
@@ -17,7 +68,8 @@ const AtsScoreActionSchema = z.object({
       (file) => ACCEPTED_FILE_TYPES.includes(file.type),
       '.pdf, .docx, and .txt files are accepted.'
     ),
-  jobDescriptionText: z.string().min(50, 'Job description text must be at least 50 characters.'),
+  // jobDescriptionText is now passed via hidden input, validated here
+  jobDescriptionText: z.string().min(50, 'Generated job description is missing or too short. Please generate one first.'),
 });
 
 export type AtsScoreActionState = {
@@ -25,8 +77,8 @@ export type AtsScoreActionState = {
   data?: AtsScoreOutput;
   error?: string;
   fieldErrors?: {
-    resumeFile?: string[]; // Changed from resumeText
-    jobDescriptionText?: string[];
+    resumeFile?: string[];
+    jobDescriptionText?: string[]; // Keep this for potential errors with the hidden field value
   };
 };
 
@@ -57,7 +109,7 @@ export async function getAtsScoreAction(
 
   const rawFormData = {
     resumeFile: formData.get('resumeFile'),
-    jobDescriptionText: formData.get('jobDescriptionText'),
+    jobDescriptionText: formData.get('jobDescriptionText'), // Read from hidden input
   };
 
    // Basic check if file exists before Zod validation
@@ -70,6 +122,17 @@ export async function getAtsScoreAction(
       },
     };
   }
+
+  // Basic check for job description from hidden input
+  if (typeof rawFormData.jobDescriptionText !== 'string' || rawFormData.jobDescriptionText.trim().length < 50) {
+      return {
+        success: false,
+        error: 'Job description is missing or invalid.',
+        fieldErrors: {
+          jobDescriptionText: ['Please generate a job description first.'],
+        },
+      };
+    }
 
 
   const validatedFields = AtsScoreActionSchema.safeParse(rawFormData);
@@ -101,7 +164,7 @@ export async function getAtsScoreAction(
 
     const inputData: AtsScoreInput = {
         resumeText: resumeText,
-        jobDescriptionText: jobDescriptionText,
+        jobDescriptionText: jobDescriptionText, // Use the validated text from hidden input
     };
 
 
