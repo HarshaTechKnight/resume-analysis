@@ -2,7 +2,7 @@
 
 import { z } from 'zod';
 import { generateAtsScore, type AtsScoreInput, type AtsScoreOutput } from '@/ai/flows/ats-score-generation';
-import pdf from 'pdf-parse';
+// Removed static import: import pdf from 'pdf-parse';
 import mammoth from 'mammoth';
 
 // Define allowed file types and size limit
@@ -35,6 +35,8 @@ async function parseResumeFile(file: File): Promise<string> {
   const buffer = Buffer.from(await file.arrayBuffer());
 
   if (file.type === 'application/pdf') {
+    // Dynamically import pdf-parse
+    const pdf = (await import('pdf-parse')).default;
     const data = await pdf(buffer);
     return data.text;
   } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
@@ -116,6 +118,8 @@ export async function getAtsScoreAction(
             errorMessage = 'The uploaded file type is not supported. Please use PDF, DOCX, or TXT.';
         } else if (error.message.includes('extractRawText') || error.message.includes('pdf')) {
             errorMessage = 'There was an error reading the content of the uploaded file. It might be corrupted or password-protected.';
+        } else if (error.message.includes('ENOENT')) {
+             errorMessage = 'A required file resource was not found. This might be an internal issue with the file parsing library.'
         } else {
              errorMessage = error.message;
         }
