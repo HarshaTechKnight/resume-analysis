@@ -1,4 +1,4 @@
-# Job Seeker Platform - README
+# HireSmart ATS: Job Seeker Platform - README
 
 ## Overview
 
