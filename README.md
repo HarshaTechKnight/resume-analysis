@@ -25,3 +25,10 @@ This platform is designed to empower job seekers by providing a suite of tools a
 ## Getting Started
 
 To get started with the development of this platform, explore the `src/app/page.tsx` file. This is the entry point for the main application logic. Other notable files include various components within the `src/components` directory.
+
+## Screenshots
+
+
+You can see a screenshot of the platform here:
+
+![ScreenShot](https://github.com/user-attachments/assets/2864566f-697a-42b8-b7be-170334b5ce79)
